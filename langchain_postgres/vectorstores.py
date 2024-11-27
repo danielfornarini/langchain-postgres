@@ -214,7 +214,7 @@ def _get_embedding_collection_store(
         )
         collection = relationship(CollectionStore, back_populates="embeddings")
 
-        embedding: Vector = sqlalchemy.Column(Vector(vector_dimension))
+        embedding: Vector = sqlalchemy.Column('openai_embedding', Vector(vector_dimension))
         document = sqlalchemy.Column(sqlalchemy.String, nullable=True)
         cmetadata = sqlalchemy.Column(JSONB, nullable=True)
         document_vector = sqlalchemy.Column(
