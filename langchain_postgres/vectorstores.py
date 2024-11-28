@@ -1129,9 +1129,7 @@ class PGVector(VectorStore):
 
     def _results_to_docs_and_scores(self, results: Any) -> List[Tuple[Document, float]]:
         """Return docs and scores from results."""
-
-        raise Exception(results)
-
+        
         docs = [
             (
                 Document(
