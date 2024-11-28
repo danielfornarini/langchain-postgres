@@ -43,7 +43,7 @@ from sqlalchemy.orm import (
     declarative_base,
     relationship,
     scoped_session,
-    sessionmaker,
+    sessionmaker, aliased,
 )
 
 from langchain_postgres._utils import maximal_marginal_relevance
@@ -1562,8 +1562,12 @@ class PGVector(VectorStore):
 
         if self._iterative_scan == IterativeScan.relaxed_order:
             cte = stmt.cte("relaxed_results").prefix_with("MATERIALIZED")
+
             stmt = (
-                select(cte)
+                select(
+                    aliased(self.EmbeddingStore, cte),
+                    cte.c.distance
+                )
                 .order_by(text("distance"))
             )
 
