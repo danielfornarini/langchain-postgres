@@ -1511,6 +1511,8 @@ class PGVector(VectorStore):
 
             results: Sequence[Any] = (await session.execute(stmt)).all()
 
+            raise Exception(results)
+
             return results
 
     def _build_query_collection(
