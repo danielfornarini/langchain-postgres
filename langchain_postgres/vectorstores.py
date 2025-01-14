@@ -1328,9 +1328,9 @@ class PGVector(VectorStore):
         await self.__apost_init__()  # Lazy async init
 
         with callbacks.collect_runs() as cb:
-            run_id = str(cb.traced_runs[0].id)
+            # run_id = str(cb.traced_runs[0].id)
 
-            raise Exception(run_id)
+            raise Exception(cb)
 
         embedding = await self.embeddings.aembed_query(query)
         return await self.asimilarity_search_by_vector(
