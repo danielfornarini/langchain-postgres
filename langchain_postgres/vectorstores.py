@@ -1330,7 +1330,7 @@ class PGVector(VectorStore):
         with callbacks.collect_runs() as cb:
             # run_id = str(cb.traced_runs[0].id)
 
-            raise Exception(cb)
+            raise Exception(cb.run_map)
 
         embedding = await self.embeddings.aembed_query(query)
         return await self.asimilarity_search_by_vector(
