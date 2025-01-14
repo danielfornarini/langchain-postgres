@@ -25,6 +25,7 @@ from typing import (
 
 import numpy as np
 import sqlalchemy
+from langchain import callbacks
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.utils import get_from_dict_or_env
@@ -1292,6 +1293,12 @@ class PGVector(VectorStore):
             List of Documents most similar to the query.
         """
         assert not self._async_engine, "This method must be called without async_mode"
+
+        with callbacks.collect_runs() as cb:
+            run_id = str(cb.traced_runs[0].id)
+
+            raise Exception(run_id)
+
         embedding = self.embeddings.embed_query(query)
         return self.similarity_search_by_vector(
             embedding=embedding,
