@@ -1887,6 +1887,7 @@ class PGVector(VectorStore):
             stmt = self._build_iterative_scan_query(stmt)
 
         if self.query_trace_enabled:
+            raise Exception("here")
             self.query_trace = stmt.compile(
                 dialect=sqlalchemy.dialects.postgresql.dialect(),
                 compile_kwargs={"literal_binds": True}
