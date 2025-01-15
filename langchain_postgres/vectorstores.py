@@ -1295,9 +1295,6 @@ class PGVector(VectorStore):
         """
         assert not self._async_engine, "This method must be called without async_mode"
 
-        # self._clear_query_trace()
-        # self.query_trace_enabled = kwargs.get("enable_query_trace", False)
-
         embedding = self.embeddings.embed_query(query)
         return self.similarity_search_by_vector(
             embedding=embedding,
@@ -1306,14 +1303,6 @@ class PGVector(VectorStore):
             full_text_search=full_text_search,
             enable_query_trace=enable_query_trace
         )
-
-        # if self.query_trace_enabled:
-        #     query_trace = self.query_trace
-        #     self._clear_query_trace()
-        #
-        #     return {"documents": documents, "query": str(query_trace), "params": query_trace.params}
-        #
-        # return documents
 
     async def asimilarity_search(
         self,
@@ -1336,9 +1325,6 @@ class PGVector(VectorStore):
         """
         await self.__apost_init__()  # Lazy async init
 
-        # self._clear_query_trace()
-        # self.query_trace_enabled = kwargs.get("enable_query_trace", False)
-
         embedding = await self.embeddings.aembed_query(query)
         return await self.asimilarity_search_by_vector(
             embedding=embedding,
@@ -1347,10 +1333,6 @@ class PGVector(VectorStore):
             full_text_search=full_text_search,
             enable_query_trace=enable_query_trace
         )
-
-    # def _clear_query_trace(self):
-    #     self.query_trace = None
-    #     self.query_trace_enabled = False
 
     def similarity_search_with_score(
         self,
