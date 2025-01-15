@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import enum
+import json
 import logging
 import uuid
 from typing import (
@@ -1875,6 +1876,10 @@ class PGVector(VectorStore):
         for key, value in params.items():
             if isinstance(value, int):
                 query = query.replace(f"%({key})s", str(value))
+                continue
+
+            if isinstance(value, dict):
+                query = query.replace(f"%({key})s", f"'{json.dumps(value)}'")
                 continue
 
             query = query.replace(f"%({key})s", f"'{str(value)}'")
