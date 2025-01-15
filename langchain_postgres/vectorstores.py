@@ -1301,7 +1301,7 @@ class PGVector(VectorStore):
         self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = self.embeddings.embed_query(query)
-        result = self.similarity_search_by_vector(
+        results = self.similarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
@@ -1312,11 +1312,9 @@ class PGVector(VectorStore):
             query_trace = self.query_trace
             self._clear_query_trace()
 
-            # raise Exception(query_trace)
+            return {"results": results, "query": str(query_trace), "params": query_trace.params}
 
-            return result, query_trace
-
-        return result
+        return results
 
     async def asimilarity_search(
         self,
@@ -1342,7 +1340,7 @@ class PGVector(VectorStore):
         self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = await self.embeddings.aembed_query(query)
-        result = await self.asimilarity_search_by_vector(
+        results = await self.asimilarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
@@ -1353,11 +1351,9 @@ class PGVector(VectorStore):
             query_trace = self.query_trace
             self._clear_query_trace()
 
-            raise Exception(query_trace)
+            return {"results": results, "query": str(query_trace), "params": query_trace.params}
 
-            return result, query_trace
-
-        return result
+        return results
 
     def _clear_query_trace(self):
         self.query_trace = None
