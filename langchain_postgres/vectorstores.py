@@ -1886,6 +1886,8 @@ class PGVector(VectorStore):
         if self._iterative_scan == IterativeScan.relaxed_order:
             stmt = self._build_iterative_scan_query(stmt)
 
+        raise Exception(self.query_trace_enabled)
+
         if self.query_trace_enabled:
             raise Exception("here")
             self.query_trace = stmt.compile(
