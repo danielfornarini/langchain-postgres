@@ -1297,6 +1297,8 @@ class PGVector(VectorStore):
         """
         assert not self._async_engine, "This method must be called without async_mode"
 
+        raise Exception(kwargs)
+
         self._clear_query_trace()
         self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
@@ -1338,6 +1340,8 @@ class PGVector(VectorStore):
         """
         await self.__apost_init__()  # Lazy async init
 
+        raise Exception(kwargs)
+
         self._clear_query_trace()
         self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
@@ -1353,7 +1357,6 @@ class PGVector(VectorStore):
             query_trace = self.query_trace
             self._clear_query_trace()
 
-            raise Exception(query_trace)
 
             return result, query_trace
 
