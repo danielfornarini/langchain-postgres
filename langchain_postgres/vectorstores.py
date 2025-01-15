@@ -59,7 +59,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
-from langchain_postgres._utils import maximal_marginal_relevance
+from langchain_postgres._utils import maximal_marginal_relevance, without_keys
 
 
 class DistanceStrategy(str, enum.Enum):
@@ -571,9 +571,6 @@ class PGVector(VectorStore):
         self._binary_quantization = binary_quantization
         self._binary_limit = binary_limit
         self._enable_partitioning = enable_partitioning
-
-        self.query_trace_enabled = False
-        self.query_trace = None
 
         if self._embedding_length is None and self._embedding_index is not None:
             raise ValueError(
@@ -1283,6 +1280,7 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
         **kwargs: Any,
     ) -> List[Document]:
         """Run similarity search with PGVector with distance.
@@ -1297,24 +1295,25 @@ class PGVector(VectorStore):
         """
         assert not self._async_engine, "This method must be called without async_mode"
 
-        self._clear_query_trace()
-        self.query_trace_enabled = kwargs.get("enable_query_trace", False)
+        # self._clear_query_trace()
+        # self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = self.embeddings.embed_query(query)
-        documents = self.similarity_search_by_vector(
+        return self.similarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
             full_text_search=full_text_search,
+            enable_query_trace=enable_query_trace
         )
 
-        if self.query_trace_enabled:
-            query_trace = self.query_trace
-            self._clear_query_trace()
-
-            return {"documents": documents, "query": str(query_trace), "params": query_trace.params}
-
-        return documents
+        # if self.query_trace_enabled:
+        #     query_trace = self.query_trace
+        #     self._clear_query_trace()
+        #
+        #     return {"documents": documents, "query": str(query_trace), "params": query_trace.params}
+        #
+        # return documents
 
     async def asimilarity_search(
         self,
@@ -1322,6 +1321,7 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
         **kwargs: Any,
     ) -> List[Document]:
         """Run similarity search with PGVector with distance.
@@ -1336,28 +1336,21 @@ class PGVector(VectorStore):
         """
         await self.__apost_init__()  # Lazy async init
 
-        self._clear_query_trace()
-        self.query_trace_enabled = kwargs.get("enable_query_trace", False)
+        # self._clear_query_trace()
+        # self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = await self.embeddings.aembed_query(query)
-        documents = await self.asimilarity_search_by_vector(
+        return await self.asimilarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
             full_text_search=full_text_search,
+            enable_query_trace=enable_query_trace
         )
 
-        if self.query_trace_enabled:
-            query_trace = self.query_trace
-            self._clear_query_trace()
-
-            return {"documents": documents, "query": str(query_trace), "params": query_trace.params}
-
-        return documents
-
-    def _clear_query_trace(self):
-        self.query_trace = None
-        self.query_trace_enabled = False
+    # def _clear_query_trace(self):
+    #     self.query_trace = None
+    #     self.query_trace_enabled = False
 
     def similarity_search_with_score(
         self,
@@ -1434,13 +1427,24 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
     ) -> List[Tuple[Document, float]]:
         assert not self._async_engine, "This method must be called without async_mode"
-        results = self.__query_collection(
-            embedding=embedding, k=k, filter=filter, full_text_search=full_text_search
+        data = self.__query_collection(
+            embedding=embedding,
+            k=k,
+            filter=filter,
+            full_text_search=full_text_search,
+            enable_query_trace=enable_query_trace,
         )
 
-        return self._results_to_docs_and_scores(results)
+        if enable_query_trace:
+            return {
+                "docs_and_scores": self._results_to_docs_and_scores(data["results"]),
+                **without_keys(data, "results"),
+            }
+
+        return self._results_to_docs_and_scores(data)
 
     async def asimilarity_search_with_score_by_vector(
         self,
@@ -1448,18 +1452,27 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
+        **kwargs: Any,
     ) -> List[Tuple[Document, float]]:
         await self.__apost_init__()  # Lazy async init
         async with self._make_async_session() as session:  # type: ignore[arg-type]
-            results = await self.__aquery_collection(
+            data = await self.__aquery_collection(
                 session=session,
                 embedding=embedding,
                 k=k,
                 filter=filter,
                 full_text_search=full_text_search,
+                enable_query_trace=enable_query_trace,
             )
 
-            return self._results_to_docs_and_scores(results)
+            if enable_query_trace:
+                return {
+                    "docs_and_scores": self._results_to_docs_and_scores(data["results"]),
+                    **without_keys(data, "results"),
+                }
+
+            return self._results_to_docs_and_scores(data)
 
     def _results_to_docs_and_scores(self, results: Any) -> List[Tuple[Document, float]]:
         """Return docs and scores from results."""
@@ -1802,6 +1815,7 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[Dict[str, str]] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
     ) -> Sequence[Any]:
         """Query the collection."""
         with self._make_sync_session() as session:  # type: ignore[arg-type]
@@ -1819,12 +1833,18 @@ class PGVector(VectorStore):
                 full_text_search=full_text_search,
             )
 
-            if self.query_trace_enabled:
-                self.query_trace = stmt.compile(
+            results: Sequence[Any] = session.execute(stmt).all()
+
+            if enable_query_trace:
+                compiled = stmt.compile(
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
 
-            results: Sequence[Any] = session.execute(stmt).all()
+                return {
+                    "results": results,
+                    "query": str(compiled),
+                    "params": compiled.params
+                }
 
             return results
 
@@ -1835,6 +1855,8 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[Dict[str, str]] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
+        **kwargs: Any,
     ) -> Sequence[Any]:
         """Query the collection."""
         async with self._make_async_session() as session:  # type: ignore[arg-type]
@@ -1852,12 +1874,18 @@ class PGVector(VectorStore):
                 full_text_search=full_text_search,
             )
 
-            if self.query_trace_enabled:
-                self.query_trace = stmt.compile(
+            results: Sequence[Any] = (await session.execute(stmt)).all()
+
+            if enable_query_trace:
+                compiled = stmt.compile(
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
 
-            results: Sequence[Any] = (await session.execute(stmt)).all()
+                return {
+                    "results": results,
+                    "query": str(compiled),
+                    "params": compiled.params
+                }
 
             return results
 
@@ -2090,6 +2118,7 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
         **kwargs: Any,
     ) -> List[Document]:
         """Return docs most similar to embedding vector.
@@ -2106,10 +2135,21 @@ class PGVector(VectorStore):
             List of Documents most similar to the query vector.
         """
         assert not self._async_engine, "This method must be called without async_mode"
-        docs_and_scores = self.similarity_search_with_score_by_vector(
-            embedding=embedding, k=k, filter=filter, full_text_search=full_text_search
+        data = self.similarity_search_with_score_by_vector(
+            embedding=embedding,
+            k=k,
+            filter=filter,
+            full_text_search=full_text_search,
+            enable_query_trace=enable_query_trace
         )
-        return _results_to_docs(docs_and_scores)
+
+        if enable_query_trace:
+            return {
+                "documents": _results_to_docs(data["docs_and_scores"]),
+                **without_keys(data, "docs_and_scores"),
+            }
+
+        return _results_to_docs(data)
 
     async def asimilarity_search_by_vector(
         self,
@@ -2117,6 +2157,7 @@ class PGVector(VectorStore):
         k: int = 4,
         filter: Optional[dict] = None,
         full_text_search: Optional[List[str]] = None,
+        enable_query_trace: bool = False,
         **kwargs: Any,
     ) -> List[Document]:
         """Return docs most similar to embedding vector.
@@ -2134,10 +2175,21 @@ class PGVector(VectorStore):
         """
         assert self._async_engine, "This method must be called with async_mode"
         await self.__apost_init__()  # Lazy async init
-        docs_and_scores = await self.asimilarity_search_with_score_by_vector(
-            embedding=embedding, k=k, filter=filter, full_text_search=full_text_search
+        data = await self.asimilarity_search_with_score_by_vector(
+            embedding=embedding,
+            k=k,
+            filter=filter,
+            full_text_search=full_text_search,
+            enable_query_trace=enable_query_trace
         )
-        return _results_to_docs(docs_and_scores)
+
+        if enable_query_trace:
+            return {
+                "documents": _results_to_docs(data["docs_and_scores"]),
+                **without_keys(data, "docs_and_scores"),
+            }
+
+        return _results_to_docs(data)
 
     @classmethod
     def from_texts(

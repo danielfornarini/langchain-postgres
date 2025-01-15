@@ -81,3 +81,7 @@ def maximal_marginal_relevance(
         idxs.append(idx_to_add)
         selected = np.append(selected, [embedding_list[idx_to_add]], axis=0)
     return idxs
+
+
+def without_keys(d, keys):
+    return {k: v for k, v in d.items() if k not in keys}
