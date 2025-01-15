@@ -1822,15 +1822,9 @@ class PGVector(VectorStore):
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
 
-                stmt = stmt.params(**compiled.params)
-
-                compiled = stmt.compile(
-                    dialect=sqlalchemy.dialects.postgresql.dialect(),
-                )
-
                 return {
                     "results": results,
-                    "query": str(compiled),
+                    "query": self._apply_params(compiled.params, str(compiled)),
                     "params": compiled.params
                 }
 
@@ -1869,19 +1863,19 @@ class PGVector(VectorStore):
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
 
-                stmt = stmt.params(**compiled.params)
-
-                compiled = stmt.compile(
-                    dialect=sqlalchemy.dialects.postgresql.dialect(),
-                )
-
                 return {
                     "results": results,
-                    "query": str(compiled),
+                    "query": self._apply_params(compiled.params, str(compiled)),
                     "params": compiled.params
                 }
 
             return results
+
+    def _apply_params(self, params: dict, query: str):
+        for key, value in params.items():
+            query = query.replace(f"%({key})s", str(value))
+
+        return query
 
     def _build_query_collection(
         self,
