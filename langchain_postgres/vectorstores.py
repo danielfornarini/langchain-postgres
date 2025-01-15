@@ -1823,6 +1823,12 @@ class PGVector(VectorStore):
                 full_text_search=full_text_search,
             )
 
+            if self.query_trace_enabled:
+                self.query_trace = stmt.compile(
+                    dialect=sqlalchemy.dialects.postgresql.dialect(),
+                    compile_kwargs={"literal_binds": True}
+                )
+
             results: Sequence[Any] = session.execute(stmt).all()
 
             return results
@@ -1850,6 +1856,12 @@ class PGVector(VectorStore):
                 filter=filter,
                 full_text_search=full_text_search,
             )
+
+            if self.query_trace_enabled:
+                self.query_trace = stmt.compile(
+                    dialect=sqlalchemy.dialects.postgresql.dialect(),
+                    compile_kwargs={"literal_binds": True}
+                )
 
             results: Sequence[Any] = (await session.execute(stmt)).all()
 
@@ -1885,15 +1897,6 @@ class PGVector(VectorStore):
 
         if self._iterative_scan == IterativeScan.relaxed_order:
             stmt = self._build_iterative_scan_query(stmt)
-
-        raise Exception(self.query_trace_enabled)
-
-        if self.query_trace_enabled:
-            raise Exception("here")
-            self.query_trace = stmt.compile(
-                dialect=sqlalchemy.dialects.postgresql.dialect(),
-                compile_kwargs={"literal_binds": True}
-            )
 
         return stmt
 
