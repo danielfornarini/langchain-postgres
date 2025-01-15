@@ -1826,7 +1826,6 @@ class PGVector(VectorStore):
                 return {
                     "results": results,
                     "query": self._apply_params(compiled.params, str(compiled)),
-                    "params": compiled.params
                 }
 
             return results
@@ -1867,7 +1866,6 @@ class PGVector(VectorStore):
                 return {
                     "results": results,
                     "query": self._apply_params(compiled.params, str(compiled)),
-                    "params": compiled.params
                 }
 
             return results
