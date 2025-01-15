@@ -572,6 +572,9 @@ class PGVector(VectorStore):
         self._binary_limit = binary_limit
         self._enable_partitioning = enable_partitioning
 
+        self.query_trace_enabled = False
+        self.query_trace = None
+
         if self._embedding_length is None and self._embedding_index is not None:
             raise ValueError(
                 "embedding_length must be provided when using embedding_index"
@@ -1294,18 +1297,24 @@ class PGVector(VectorStore):
         """
         assert not self._async_engine, "This method must be called without async_mode"
 
-        with callbacks.collect_runs() as cb:
-            run_id = str(cb.traced_runs[0].id)
-
-            raise Exception(run_id)
+        self._clear_query_trace()
+        self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = self.embeddings.embed_query(query)
-        return self.similarity_search_by_vector(
+        result = self.similarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
             full_text_search=full_text_search,
         )
+
+        if self.query_trace_enabled:
+            query_trace = self.query_trace
+            self._clear_query_trace()
+
+            return result, query_trace
+
+        return result
 
     async def asimilarity_search(
         self,
@@ -1327,18 +1336,28 @@ class PGVector(VectorStore):
         """
         await self.__apost_init__()  # Lazy async init
 
-        with callbacks.collect_runs() as cb:
-            # run_id = str(cb.traced_runs[0].id)
-
-            raise Exception(cb.run_map)
+        self._clear_query_trace()
+        self.query_trace_enabled = kwargs.get("enable_query_trace", False)
 
         embedding = await self.embeddings.aembed_query(query)
-        return await self.asimilarity_search_by_vector(
+        result = await self.asimilarity_search_by_vector(
             embedding=embedding,
             k=k,
             filter=filter,
             full_text_search=full_text_search,
         )
+
+        if self.query_trace_enabled:
+            query_trace = self.query_trace
+            self._clear_query_trace()
+
+            return result, query_trace
+
+        return result
+
+    def _clear_query_trace(self):
+        self.query_trace = None
+        self.query_trace_enabled = False
 
     def similarity_search_with_score(
         self,
@@ -1862,6 +1881,12 @@ class PGVector(VectorStore):
 
         if self._iterative_scan == IterativeScan.relaxed_order:
             stmt = self._build_iterative_scan_query(stmt)
+
+        if self.query_trace_enabled:
+            self.query_trace = stmt.compile(
+                dialect=sqlalchemy.dialects.postgresql.dialect(),
+                compile_kwargs={"literal_binds": True}
+            )
 
         return stmt
 
