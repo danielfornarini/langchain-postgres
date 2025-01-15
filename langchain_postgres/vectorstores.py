@@ -1873,7 +1873,11 @@ class PGVector(VectorStore):
 
     def _apply_params(self, params: dict, query: str):
         for key, value in params.items():
-            query = query.replace(f"%({key})s", str(value))
+            if isinstance(value, int):
+                query = query.replace(f"%({key})s", str(value))
+                continue
+
+            query = query.replace(f"%({key})s", f"'{str(value)}'")
 
         return query
 
