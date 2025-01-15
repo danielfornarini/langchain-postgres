@@ -1822,6 +1822,12 @@ class PGVector(VectorStore):
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
 
+                stmt = stmt.params(**compiled.params)
+
+                compiled = stmt.compile(
+                    dialect=sqlalchemy.dialects.postgresql.dialect(),
+                )
+
                 return {
                     "results": results,
                     "query": str(compiled),
@@ -1859,6 +1865,12 @@ class PGVector(VectorStore):
             results: Sequence[Any] = (await session.execute(stmt)).all()
 
             if enable_query_trace:
+                compiled = stmt.compile(
+                    dialect=sqlalchemy.dialects.postgresql.dialect(),
+                )
+
+                stmt = stmt.params(**compiled.params)
+
                 compiled = stmt.compile(
                     dialect=sqlalchemy.dialects.postgresql.dialect(),
                 )
