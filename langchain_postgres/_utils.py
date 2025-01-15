@@ -2,11 +2,14 @@
 
 This code should be moved to langchain proper or removed entirely.
 """
-
+import json
 import logging
 from typing import List, Union
 
 import numpy as np
+from sqlalchemy import JSON
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import JSONB
 
 logger = logging.getLogger(__name__)
 
@@ -78,3 +81,61 @@ def maximal_marginal_relevance(
         idxs.append(idx_to_add)
         selected = np.append(selected, [embedding_list[idx_to_add]], axis=0)
     return idxs
+
+
+class PostgresCompiler(postgresql.dialect().statement_compiler):
+    """Custom compiler class to handle JSONB and other complex data types"""
+
+    def render_literal_value(self, value, type_):
+        """
+        Custom literal value renderer that handles JSONB and other PostgreSQL-specific types.
+        """
+        # Handle JSONB and JSON types
+        if isinstance(type_, (JSONB, JSON)):
+            return f"'{json.dumps(value)}'::jsonb"
+
+        # For all other types, use the default rendering
+        return super().render_literal_value(value, type_)
+
+
+def get_postgres_sql(statement):
+    """
+    Convert a SQLAlchemy statement to a PostgreSQL string.
+    Handles complex types like JSONB.
+
+    Args:
+        statement: A SQLAlchemy statement object
+
+    Returns:
+        str: The equivalent PostgreSQL query string
+
+    Example:
+        from sqlalchemy import select, Column, String, JSONB
+        from sqlalchemy.ext.declarative import declarative_base
+
+        Base = declarative_base()
+
+        class Document(Base):
+            __tablename__ = 'documents'
+            id = Column(String, primary_key=True)
+            data = Column(JSONB)
+
+        # Create a sample query with JSONB
+        query = select(Document).where(Document.data.contains({'value': 'spreadsheet'}))
+
+        # Convert to PostgreSQL string
+        sql_string = get_postgres_sql(query)
+    """
+    # Create a PostgreSQL dialect instance
+    dialect = postgresql.dialect()
+
+    # Compile the statement using our custom compiler
+    compiled = statement.compile(
+        dialect=dialect,
+        compile_kwargs={
+            "literal_binds": True,
+            "statement_compiler": PostgresCompiler
+        }
+    )
+
+    return str(compiled)

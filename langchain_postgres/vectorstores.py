@@ -59,7 +59,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
-from langchain_postgres._utils import maximal_marginal_relevance
+from langchain_postgres._utils import maximal_marginal_relevance, get_postgres_sql
 
 
 class DistanceStrategy(str, enum.Enum):
@@ -1824,10 +1824,7 @@ class PGVector(VectorStore):
             )
 
             if self.query_trace_enabled:
-                self.query_trace = stmt.compile(
-                    dialect=sqlalchemy.dialects.postgresql.dialect(),
-                    compile_kwargs={"literal_binds": True}
-                )
+                self.query_trace = get_postgres_sql(stmt)
 
             results: Sequence[Any] = session.execute(stmt).all()
 
@@ -1858,10 +1855,7 @@ class PGVector(VectorStore):
             )
 
             if self.query_trace_enabled:
-                self.query_trace = stmt.compile(
-                    dialect=sqlalchemy.dialects.postgresql.dialect(),
-                    compile_kwargs={"literal_binds": True}
-                )
+                self.query_trace = get_postgres_sql(stmt)
 
             results: Sequence[Any] = (await session.execute(stmt)).all()
 
