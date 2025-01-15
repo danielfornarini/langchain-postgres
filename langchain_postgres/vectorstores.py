@@ -1351,6 +1351,8 @@ class PGVector(VectorStore):
             query_trace = self.query_trace
             self._clear_query_trace()
 
+            raise Exception(query_trace)
+
             return result, query_trace
 
         return result
