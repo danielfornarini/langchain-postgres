@@ -1355,6 +1355,9 @@ class PGVector(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
+
+        raise Exception("async similarity search")
+
         await self.__apost_init__()  # Lazy async init
         embedding = await self.embeddings.aembed_query(query)
         return await self.asimilarity_search_by_vector(
