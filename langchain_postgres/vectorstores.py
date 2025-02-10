@@ -186,9 +186,11 @@ def _get_embedding_collection_store(
             created = False
             collection = cls.get_by_name(session, name)
 
+            raise Exception('here async')
+
             if collection:
-                if partition:
-                    cls._ensure_partition_exists(session, collection)
+                # if partition:
+                #     cls._ensure_partition_exists(session, collection)
 
                 return collection, created
 
@@ -220,9 +222,11 @@ def _get_embedding_collection_store(
             created = False
             collection = await cls.aget_by_name(session, name)
 
+            raise Exception('here async')
+
             if collection:
-                if partition:
-                    await cls._aensure_partition_exists(session, collection)
+                # if partition:
+                #     await cls._aensure_partition_exists(session, collection)
 
                 return collection, created
 
