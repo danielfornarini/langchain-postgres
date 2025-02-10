@@ -199,7 +199,7 @@ def _get_embedding_collection_store(
             session.flush()
             session.refresh(collection)
             
-            raise Exception(f'here async: {partition}')
+            raise Exception(f'here sync: {partition}')
 
             if partition:
                 ddl = cls._create_partition_ddl(str(collection.uuid))
@@ -224,8 +224,6 @@ def _get_embedding_collection_store(
             created = False
             collection = await cls.aget_by_name(session, name)
 
-            raise Exception('here async')
-
             if collection:
                 # if partition:
                 #     await cls._aensure_partition_exists(session, collection)
@@ -236,6 +234,8 @@ def _get_embedding_collection_store(
             session.add(collection)
             await session.flush()
             await session.refresh(collection)
+
+            raise Exception(f'here sync: {partition}')
 
             if partition:
                 ddl = cls._create_partition_ddl(str(collection.uuid))
