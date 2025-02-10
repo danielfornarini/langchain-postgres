@@ -221,6 +221,8 @@ def _get_embedding_collection_store(
             Get or create a collection.
             Returns [Collection, bool] where the bool is True if the collection was created.
             """  # noqa: E501
+            raise Exception(f'here async: {partition}')
+
             created = False
             collection = await cls.aget_by_name(session, name)
 
@@ -235,7 +237,6 @@ def _get_embedding_collection_store(
             await session.flush()
             await session.refresh(collection)
 
-            raise Exception(f'here sync: {partition}')
 
             if partition:
                 ddl = cls._create_partition_ddl(str(collection.uuid))
@@ -899,7 +900,6 @@ class PGVector(VectorStore):
             session.commit()
 
     async def acreate_collection(self) -> None:
-        raise Exception(f'acreate collection: {self._enable_partitioning}')
         await self.__apost_init__()  # Lazy async init
         async with self._make_async_session() as session:
             if self.pre_delete_collection:
