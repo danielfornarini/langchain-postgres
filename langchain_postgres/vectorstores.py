@@ -899,6 +899,7 @@ class PGVector(VectorStore):
             session.commit()
 
     async def acreate_collection(self) -> None:
+        raise Exception(f'acreate collection: {self._enable_partitioning}')
         await self.__apost_init__()  # Lazy async init
         async with self._make_async_session() as session:
             if self.pre_delete_collection:
@@ -1355,8 +1356,6 @@ class PGVector(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
-
-        raise Exception("async similarity search")
 
         await self.__apost_init__()  # Lazy async init
         embedding = await self.embeddings.aembed_query(query)
