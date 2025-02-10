@@ -187,10 +187,9 @@ def _get_embedding_collection_store(
             created = False
             collection = cls.get_by_name(session, name)
 
-
             if collection:
-                # if partition:
-                #     cls._ensure_partition_exists(session, collection)
+                if partition:
+                    cls._ensure_partition_exists(session, collection)
 
                 return collection, created
 
@@ -199,8 +198,6 @@ def _get_embedding_collection_store(
             session.add(collection)
             session.flush()
             session.refresh(collection)
-            
-            raise Exception(f'here sync: {partition}')
 
             if partition:
                 ddl = cls._create_partition_ddl(str(collection.uuid))
@@ -223,14 +220,12 @@ def _get_embedding_collection_store(
             Get or create a collection.
             Returns [Collection, bool] where the bool is True if the collection was created.
             """  # noqa: E501
-            raise Exception(f'here async: {partition}')
-
             created = False
             collection = await cls.aget_by_name(session, name)
 
             if collection:
-                # if partition:
-                #     await cls._aensure_partition_exists(session, collection)
+                if partition:
+                    await cls._aensure_partition_exists(session, collection)
 
                 return collection, created
 
@@ -238,7 +233,6 @@ def _get_embedding_collection_store(
             session.add(collection)
             await session.flush()
             await session.refresh(collection)
-
 
             if partition:
                 ddl = cls._create_partition_ddl(str(collection.uuid))
