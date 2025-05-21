@@ -61,7 +61,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.ddl import CreateIndex, CreateTable
 
-from langchain_postgres._utils import maximal_marginal_relevance, without_keys
+from langchain_postgres._utils import maximal_marginal_relevance, without_keys, chunkerize
 
 
 class DistanceStrategy(str, enum.Enum):
@@ -1128,12 +1128,12 @@ class PGVector(VectorStore):
         return store
 
     def add_embeddings(
-        self,
-        texts: Sequence[str],
-        embeddings: List[List[float]],
-        metadatas: Optional[List[dict]] = None,
-        ids: Optional[List[str]] = None,
-        **kwargs: Any,
+            self,
+            texts: Sequence[str],
+            embeddings: List[List[float]],
+            metadatas: Optional[List[dict]] = None,
+            ids: Optional[List[str]] = None,
+            **kwargs: Any,
     ) -> List[str]:
         """Add embeddings to the vectorstore.
 
@@ -1156,21 +1156,25 @@ class PGVector(VectorStore):
 
         with self._make_sync_session() as session:  # type: ignore[arg-type]
             collection = self.get_collection(session)
+
             if not collection:
                 raise ValueError("Collection not found")
-            data = [
-                {
-                    "id": id,
-                    "collection_id": collection.uuid,
-                    "embedding": embedding,
-                    "document": text,
-                    "cmetadata": metadata or {},
-                }
-                for text, metadata, embedding, id in zip(
-                    texts, metadatas, embeddings, ids_
-                )
-            ]
-            stmt = insert(self.EmbeddingStore).values(data)
+
+        data = [
+            {
+                "id": id,
+                "collection_id": collection.uuid,
+                "embedding": embedding,
+                "document": text,
+                "cmetadata": metadata or {},
+            }
+            for text, metadata, embedding, id in zip(
+                texts, metadatas, embeddings, ids_
+            )
+        ]
+
+        for chunk in chunkerize(data, 1000):
+            stmt = insert(self.EmbeddingStore).values(chunk)
 
             index_elements = ["id"]
             if self._enable_partitioning:
@@ -1185,8 +1189,10 @@ class PGVector(VectorStore):
                     "cmetadata": stmt.excluded.cmetadata,
                 },
             )
-            session.execute(on_conflict_stmt)
-            session.commit()
+
+            with self._make_sync_session() as session:
+                session.execute(on_conflict_stmt)
+                session.commit()
 
         return ids_
 

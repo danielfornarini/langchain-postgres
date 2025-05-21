@@ -85,3 +85,8 @@ def maximal_marginal_relevance(
 
 def without_keys(d, keys):
     return {k: v for k, v in d.items() if k not in keys}
+
+
+def chunkerize(lst: list, n: int):
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
